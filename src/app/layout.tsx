@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -10,20 +11,22 @@ export const metadata: Metadata = {
 		'CryptoFernet is a powerful and user-friendly tool for encrypting and decrypting messages using the Fernet algorithm. Protect your sensitive information with ease.',
 	keywords:
 		'Fernet, encryption, decryption, cybersecurity, data protection, secure messaging',
-	authors: [{ name: 'Anderson Castaño', url: 'https://anderc-dev.vercel.app/' }],
+	authors: [
+		{ name: 'Anderson Castaño', url: 'https://anderc-dev.vercel.app/' },
+	],
 	creator: 'AndercDev',
 	publisher: 'AndercDev',
 	openGraph: {
 		type: 'website',
 		locale: 'en_US',
-		url: 'https://CryptoFernet.com',
+		url: 'https://crypto-fernet.vercel.app/',
 		title: 'CryptoFernet - Secure Encryption and Decryption Tool',
 		description:
 			'Protect your sensitive information with CryptoFernet, a powerful Fernet encryption and decryption tool.',
 		siteName: 'CryptoFernet',
 		images: [
 			{
-				url: 'https://CryptoFernet.com/og-image.jpg',
+				url: 'https://crypto-fernet.vercel.app/cryptoFernetOG.jpeg',
 				width: 1200,
 				height: 630,
 				alt: 'CryptoFernet - Secure Encryption and Decryption Tool',
@@ -36,7 +39,7 @@ export const metadata: Metadata = {
 		description:
 			'Protect your sensitive information with CryptoFernet, a powerful Fernet encryption and decryption tool.',
 		creator: '@YourTwitterHandle',
-		images: ['https://CryptoFernet.com/twitter-image.jpg'],
+		images: ['https://crypto-fernet.vercel.app/cryptoFernetTW.jpeg'],
 	},
 	robots: {
 		index: true,
@@ -63,7 +66,18 @@ export default function RootLayout({
 }) {
 	return (
 		<html lang='en'>
-			<body className={inter.className}>{children}</body>
+			<head>
+				<link
+					rel='icon'
+					href='/favicon.svg'
+					sizes='any'
+					type='image/svg+xml'
+				/>
+			</head>
+			<body className={inter.className}>
+				<Analytics />
+				{children}
+			</body>
 		</html>
 	);
 }
