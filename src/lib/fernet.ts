@@ -8,14 +8,17 @@ function base64UrlEncode(buffer: ArrayBuffer): string {
 		.replace(/=+$/, '');
 }
 
-function base64UrlDecode(str: string): Uint8Array {
-	return Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), c =>
-		c.charCodeAt(0),
-	);
+function base64UrlDecode(str: string): ArrayBuffer {
+	const binary = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+	return bytes.buffer;
 }
 
 async function deriveKeys(key: string): Promise<[CryptoKey, CryptoKey]> {
-	const rawKey = base64UrlDecode(key);
+	const rawKey = new Uint8Array(base64UrlDecode(key));
 	if (rawKey.length !== 32) {
 		throw new Error(`Invalid key length: ${rawKey.length}`);
 	}
@@ -50,7 +53,7 @@ export async function encrypt(plaintext: string, key: string): Promise<string> {
 	const ciphertext = await crypto.subtle.encrypt(
 		{ name: 'AES-CBC', iv },
 		encryptionKey,
-		encoder.encode(plaintext),
+		encoder.encode(plaintext).buffer,
 	);
 
 	const dataToSign = new Uint8Array([
@@ -63,12 +66,12 @@ export async function encrypt(plaintext: string, key: string): Promise<string> {
 	const hmac = await crypto.subtle.sign('HMAC', signingKey, dataToSign);
 
 	const token = new Uint8Array([...dataToSign, ...new Uint8Array(hmac)]);
-	return base64UrlEncode(token);
+	return base64UrlEncode(token.buffer);
 }
 
 export async function decrypt(token: string, key: string): Promise<string> {
 	try {
-		const data = base64UrlDecode(token);
+		const data = new Uint8Array(base64UrlDecode(token));
 
 		if (data.length < 33) {
 			throw new Error('Token is too short');
@@ -106,12 +109,21 @@ export async function decrypt(token: string, key: string): Promise<string> {
 		const decrypted = await crypto.subtle.decrypt(
 			{ name: 'AES-CBC', iv },
 			encryptionKey,
-			ciphertext,
+			ciphertext.buffer,
 		);
 
 		return decoder.decode(decrypted);
 	} catch (error) {
 		console.error('Decryption failed:', (error as Error).message);
 		throw error;
+	}
+}
+
+export function tryParseJSON(text: string): string {
+	try {
+		const obj = JSON.parse(text);
+		return JSON.stringify(obj, null, 2);
+	} catch {
+		return text;
 	}
 }
