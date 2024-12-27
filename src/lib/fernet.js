@@ -1,14 +1,14 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-function base64UrlEncode(buffer: ArrayBuffer): string {
+function base64UrlEncode(buffer) {
 	return btoa(String.fromCharCode(...new Uint8Array(buffer)))
 		.replace(/\+/g, '-')
 		.replace(/\//g, '_')
 		.replace(/=+$/, '');
 }
 
-function base64UrlDecode(str: string): ArrayBuffer {
+function base64UrlDecode(str) {
 	const binary = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
 	const bytes = new Uint8Array(binary.length);
 	for (let i = 0; i < binary.length; i++) {
@@ -17,7 +17,7 @@ function base64UrlDecode(str: string): ArrayBuffer {
 	return bytes.buffer;
 }
 
-async function deriveKeys(key: string): Promise<[CryptoKey, CryptoKey]> {
+async function deriveKeys(key) {
 	const rawKey = new Uint8Array(base64UrlDecode(key));
 	if (rawKey.length !== 32) {
 		throw new Error(`Invalid key length: ${rawKey.length}`);
@@ -28,7 +28,7 @@ async function deriveKeys(key: string): Promise<[CryptoKey, CryptoKey]> {
 		rawKey.slice(0, 16),
 		{ name: 'HMAC', hash: 'SHA-256' },
 		false,
-		['sign', 'verify'],
+		['sign', 'verify']
 	);
 
 	const encryptionKey = await crypto.subtle.importKey(
@@ -36,13 +36,13 @@ async function deriveKeys(key: string): Promise<[CryptoKey, CryptoKey]> {
 		rawKey.slice(16),
 		{ name: 'AES-CBC', length: 128 },
 		false,
-		['encrypt', 'decrypt'],
+		['encrypt', 'decrypt']
 	);
 
 	return [signingKey, encryptionKey];
 }
 
-export async function encrypt(plaintext: string, key: string): Promise<string> {
+export async function encrypt(plaintext, key) {
 	const [signingKey, encryptionKey] = await deriveKeys(key);
 
 	const iv = crypto.getRandomValues(new Uint8Array(16));
@@ -53,7 +53,7 @@ export async function encrypt(plaintext: string, key: string): Promise<string> {
 	const ciphertext = await crypto.subtle.encrypt(
 		{ name: 'AES-CBC', iv },
 		encryptionKey,
-		encoder.encode(plaintext).buffer,
+		encoder.encode(plaintext).buffer
 	);
 
 	const dataToSign = new Uint8Array([
@@ -69,7 +69,7 @@ export async function encrypt(plaintext: string, key: string): Promise<string> {
 	return base64UrlEncode(token.buffer);
 }
 
-export async function decrypt(token: string, key: string): Promise<string> {
+export async function decrypt(token, key) {
 	try {
 		const data = new Uint8Array(base64UrlDecode(token));
 
@@ -78,7 +78,7 @@ export async function decrypt(token: string, key: string): Promise<string> {
 		}
 
 		const version = data[0];
-		const timestamp = data.slice(1, 9);
+		// const timestamp = data.slice(1, 9);
 		const iv = data.slice(9, 25);
 		const ciphertext = data.slice(25, -32);
 		const hmac = data.slice(-32);
@@ -89,18 +89,18 @@ export async function decrypt(token: string, key: string): Promise<string> {
 
 		const [signingKey, encryptionKey] = await deriveKeys(key);
 
-		const calculatedHmac = await crypto.subtle.sign(
-			'HMAC',
-			signingKey,
-			data.slice(0, -32),
-		);
+		// const calculatedHmac = await crypto.subtle.sign(
+		// 	'HMAC',
+		// 	signingKey,
+		// 	data.slice(0, -32)
+		// );
 
 		if (
 			!(await crypto.subtle.verify(
 				'HMAC',
 				signingKey,
 				hmac,
-				data.slice(0, -32),
+				data.slice(0, -32)
 			))
 		) {
 			throw new Error('Invalid HMAC');
@@ -109,17 +109,17 @@ export async function decrypt(token: string, key: string): Promise<string> {
 		const decrypted = await crypto.subtle.decrypt(
 			{ name: 'AES-CBC', iv },
 			encryptionKey,
-			ciphertext.buffer,
+			ciphertext.buffer
 		);
 
 		return decoder.decode(decrypted);
 	} catch (error) {
-		console.error('Decryption failed:', (error as Error).message);
+		console.error('Decryption failed:', error.message);
 		throw error;
 	}
 }
 
-export function tryParseJSON(text: string): string {
+export function tryParseJSON(text) {
 	try {
 		const obj = JSON.parse(text);
 		return JSON.stringify(obj, null, 2);
